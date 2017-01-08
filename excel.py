@@ -11,8 +11,9 @@ import urllib.parse
 
 # set up the connection. Extract the database info from the URI and connect with psycopg2
 def connect():
+    # enter your database API information.. either with the uri or the credentials
     try:
-        result = urllib.parse.urlparse("postgres://4cebab44:@db.nuodata.io:5432/4cebab44")
+        result = urllib.parse.urlparse("postgres://USERNAME:PASSWORD@db.nuodata.io:5432/4cebab44")
         username = result.username
         password = result.password
         database = result.path[1:]
