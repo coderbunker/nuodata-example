@@ -7,7 +7,7 @@ import simplejson as json
 import psycopg2
 import urllib.parse
 
-# 
+#
 
 # set up the connection. Extract the database info from the URI and connect with psycopg2
 def connect():
@@ -25,13 +25,13 @@ def connect():
         )
         c = DB.cursor()
         return DB, c
-    except:
-        print("<couldn't connect>")
+    except psycopg2.Error as e:
+        print(e.pgerror)
 
 # opens the excel file, extracts data row by row, returns it in JSON
 def tojson(workbook):
     # Check the file extension is correct
-    if workbook.endswith('.xls', '.xlsx'):
+    if workbook.endswith('.xlsx'):
         # Open the workbook.
         wb = xlrd.open_workbook(workbook)
         # select the first sheet.
@@ -52,11 +52,18 @@ def tojson(workbook):
 
 # uses psycopg2 to create a query to update the DB.
 def post():
-    jdata = tojson()
+    jdata = tojson('practice.xlsx')
     DB, c = connect()
-    for item in jdata:
-        c.execute("INSERT INTO test (name, age) VALUES (%s, %s)", (item['name'], item['age']))
-    DB.commit()
+    try:
+        for item in jdata:
+            c.execute("INSERT INTO test (name, age) VALUES (%s, %s)", (item['name'], item['age']))
+    except psycopg2.Error as e:
+        DB.rollback()
+        print(e.pgerror)
+    else:
+        DB.commit()
+    c.close()
     DB.close()
+
 
 post()
