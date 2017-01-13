@@ -1,5 +1,5 @@
 #! python3
-# Reads an excel file and transforms to JSON.
+# Reads an excel file and sends the row information to a table using  postresql.
 
 import xlrd
 import sys
@@ -9,64 +9,44 @@ import psycopg2
 import argparse
 import urllib.parse
 
-# TODO update readme with what this does, and usage example.
-# empty comment on line 10
-# TODO fix custom exception line 29
-# useless undesirable check
-# TODO make parameter for database function and for post function.
 
-# set up the connection. Extract the database info from the URI and connect with psycopg2
-
-################################################################################
 def main():
     parser = argparse.ArgumentParser(description='Sends information from an excel sheet to the nuodata DB.')
     parser.add_argument('xcel', help='The directory of the excel file you want to send to the db.')
     parser.add_argument('uri', help='This includes the uri of the db. include all required parameters in the uri.')
-    parser.add_argument('dbname', help='the name of the database')
+    parser.add_argument('tableName', help='the name of the database')
 
     args = parser.parse_args()
 
     xcel = args.xcel
     uri = args.uri
-    dbname = args.dbname
+    tableName = args.tableName
 
     # connect to the database using connect() (see below)
-    DB, c= connect(uri)
+    DB, c = connect(uri)
 
     # get the list of rows from the excel file
     excel_list = toJson(xcel)
 
     # send the items in the list to the db
-    post(excel_list)
+    post(DB, c, tableName, excel_list)
 
     # close the connection to the cursor and then to the database
     c.close()
     DB.close()
-##############################################
-# THIS PART CONNECTS TO THE DB AND CREATES A cursor
+
+
 # connect with these credentials.
 def connect(uri):
-    # Asks user for database api information.
-    result = urllib.parse.urlparse(uri)
-    database = result.username
-    username = result.password
-    password = result.path[1:]
-    hostname = result.hostname
     try:
-        DB = psycopg2.connect(
-            database = database,
-            user = username,
-            password = password,
-            host = hostname
-        )
+        DB = psycopg2.connect(uri)
         c = DB.cursor()
         return DB, c
     except:
-         print('Could not connect please check that your credentials have been entered correctly.')
+         raise Exception('Could not connect please check that your credentials have been entered correctly.', sys.exc_info()[0])
 
-##############################################
-# THIS PART opens the excel file, extracts data row by row, returns it as a list
-# Open the workbook.
+
+# Opens the excel file, extracts data row by row, returns it as a list
 def toJson(xcel):
     wb = xlrd.open_workbook(xcel)
     # select the first sheet.
@@ -83,12 +63,14 @@ def toJson(xcel):
         excel_list.append(products)
     return excel_list
 
-##############################################
+
 # uses psycopg2 to create a query to update the DB.
-def post(excel_list):
+def post(DB, c, tableName, excel_list):
     try:
-        for item in jdata:
-            c.execute("INSERT INTO %s (product_name, quantity) VALUES (%s, %s)", (database-name, item['name'], item['age']))
+        for item in excel_list:
+            query = "INSERT INTO %s (product_name, quantity) VALUES ('%s', %s)" % (tableName, item['product_name'], item['quantity'])
+            print (query)
+            c.execute(query)
     except psycopg2.Error as e:
         DB.rollback()
         print(e.pgerror)
