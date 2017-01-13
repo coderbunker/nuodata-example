@@ -3,10 +3,11 @@
 
 import xlrd
 import sys
-from collections import OrderedDict
 import simplejson as json
+from collections import OrderedDict
 import psycopg2
 import argparse
+import urllib.parse
 
 # TODO update readme with what this does, and usage example.
 # empty comment on line 10
@@ -15,21 +16,42 @@ import argparse
 # TODO make parameter for database function and for post function.
 
 # set up the connection. Extract the database info from the URI and connect with psycopg2
-def takesArguments():
-    # parses the args containing the excel file directory and stores it into a variable.
+
+################################################################################
+def main():
     parser = argparse.ArgumentParser(description='Sends information from an excel sheet to the nuodata DB.')
-    parser.add_argument('excel-file', help='the directory of the excel file you want to send to the db.')
-    parser.add_argument('database uri', help='this includes the uri of the db. include all required parameters in the uri.')
+    parser.add_argument('xcel', help='The directory of the excel file you want to send to the db.')
+    parser.add_argument('uri', help='This includes the uri of the db. include all required parameters in the uri.')
+    parser.add_argument('dbname', help='the name of the database')
 
-    excel = parser.parse_args()
+    args = parser.parse_args()
+
+    xcel = args.xcel
+    uri = args.uri
+    dbname = args.dbname
+
+    # connect to the database using connect() (see below)
+    DB, c= connect(uri)
+
+    # get the list of rows from the excel file
+    excel_list = toJson(xcel)
+
+    # send the items in the list to the db
+    post(excel_list)
+
+    # close the connection to the cursor and then to the database
+    c.close()
+    DB.close()
+##############################################
+# THIS PART CONNECTS TO THE DB AND CREATES A cursor
+# connect with these credentials.
+def connect(uri):
     # Asks user for database api information.
-    database = input('database name please: ')
-    username = input('username please: ')
-    password = input('password please: ')
-    hostname = input('hostname please: ')
-
-def connect():
-    # connect with these credentials.
+    result = urllib.parse.urlparse(uri)
+    database = result.username
+    username = result.password
+    password = result.path[1:]
+    hostname = result.hostname
     try:
         DB = psycopg2.connect(
             database = database,
@@ -40,12 +62,13 @@ def connect():
         c = DB.cursor()
         return DB, c
     except:
-        return('Could not connect plese check that your credentials have been entered correctly')
+         print('Could not connect please check that your credentials have been entered correctly.')
 
-# opens the excel file, extracts data row by row, returns it in JSON
-def tojson(workbook):
-    # Open the workbook.
-    wb = xlrd.open_workbook(workbook)
+##############################################
+# THIS PART opens the excel file, extracts data row by row, returns it as a list
+# Open the workbook.
+def toJson(xcel):
+    wb = xlrd.open_workbook(xcel)
     # select the first sheet.
     sheet1 = wb.sheet_by_index(0)
     # open an empty list where to put the excel data.
@@ -54,25 +77,23 @@ def tojson(workbook):
     for rownum in range(sheet1.nrows):
         row_values = sheet1.row_values(rownum)
         products = OrderedDict()
-        products['name'] = row_values[0]
-        products['age'] = row_values[1]
+        products['product_name'] = row_values[0]
+        products['quantity'] = row_values[1]
 
         excel_list.append(products)
     return excel_list
 
+##############################################
 # uses psycopg2 to create a query to update the DB.
-def post():
-    jdata = tojson('practice.xlsx')
-    DB, c = connect()
+def post(excel_list):
     try:
         for item in jdata:
-            c.execute("INSERT INTO test (name, age) VALUES (%s, %s)", (item['name'], item['age']))
+            c.execute("INSERT INTO %s (product_name, quantity) VALUES (%s, %s)", (database-name, item['name'], item['age']))
     except psycopg2.Error as e:
         DB.rollback()
         print(e.pgerror)
     else:
         DB.commit()
-    c.close()
-    DB.close()
 
-post()
+if __name__ == '__main__':
+    main()
