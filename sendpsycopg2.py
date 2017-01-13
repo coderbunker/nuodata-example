@@ -11,9 +11,12 @@ import urllib.parse
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Sends information from an excel sheet to the nuodata DB.')
-    parser.add_argument('xcel', help='The directory of the excel file you want to send to the db.')
-    parser.add_argument('uri', help='This includes the uri of the db. include all required parameters in the uri.')
+    parser = argparse.ArgumentParser(description='Sends information from an \
+    excel sheet to the nuodata DB.')
+    parser.add_argument('xcel', help='The directory of the excel \
+    file you want to send to the db.')
+    parser.add_argument('uri', help='This includes the uri of the db. \
+     include all required parameters in the uri.')
     parser.add_argument('tableName', help='the name of the database')
 
     args = parser.parse_args()
@@ -43,7 +46,8 @@ def connect(uri):
         c = DB.cursor()
         return DB, c
     except:
-         raise Exception('Could not connect please check that your credentials have been entered correctly.', sys.exc_info()[0])
+         raise Exception('Could not connect please check that your credentials \
+         have been entered correctly.', sys.exc_info()[0])
 
 
 # Opens the excel file, extracts data row by row, returns it as a list
@@ -68,7 +72,8 @@ def toJson(xcel):
 def post(DB, c, tableName, excel_list):
     try:
         for item in excel_list:
-            query = "INSERT INTO %s (product_name, quantity) VALUES ('%s', %s)" % (tableName, item['product_name'], item['quantity'])
+            query = "INSERT INTO %s (product_name, quantity) VALUES ('%s', %s)" \
+            % (tableName, item['product_name'], item['quantity'])
             print (query)
             c.execute(query)
     except psycopg2.Error as e:

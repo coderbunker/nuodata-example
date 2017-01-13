@@ -2,7 +2,7 @@
 This file takes an excel file and sends it to the specified URI database. In this case it's made for sending updates to a database on nuodata.io.
 
 ## Pre-reqs
-run the following in the command line:
+Run the following in the cloned directory to install the required packages:
 ```
 pip install -r requirements.txt
 ```
